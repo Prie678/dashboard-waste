@@ -731,55 +731,64 @@
         };
 
         // Initialize dashboard when page loads
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Initializing TAB Dashboard...');
-            
-            // Check required libraries
-            if (typeof Papa === 'undefined' || typeof Chart === 'undefined') {
-                showStatusMessage('Required libraries (Chart.js, PapaParse) not loaded. Please check your internet connection.', 'error');
-                return;
+        document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initializing TAB Dashboard...');
+    
+    // PENTING: Pastikan nama file ini SAMA PERSIS dengan file CSV yang Anda upload ke GitHub.
+    const csvFilePath = 'Database_Waste_TAB_Template.csv'; 
+
+    // Fungsi baru untuk memuat data dari URL
+    async function loadRemoteData(filePath) {
+        showProcessing(true);
+        try {
+            console.log(`Fetching data from: ${filePath}`);
+            const response = await fetch(filePath);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch file: ${response.statusText}`);
             }
-
-            // FIXED: Register a custom plugin to display data labels on the doughnut chart
-            const dataLabelsPlugin = {
-                id: 'customDataLabels',
-                afterDraw: (chart) => {
-                    if (chart.config.type !== 'doughnut') return;
-                    const { ctx, data } = chart;
-                    ctx.save();
-                    data.datasets.forEach((dataset, i) => {
-                        chart.getDatasetMeta(i).data.forEach((datapoint, index) => {
-                            const { x, y } = datapoint.getCenterPoint();
-                            const value = dataset.data[index];
-                            if (value === 0) return; // Don't show label for 0 value
-
-                            const total = dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-
-                            // Style the text
-                            ctx.font = 'bold 14px Segoe UI';
-                            ctx.fillStyle = '#ffffff';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.textShadow = '1px 1px 2px rgba(0,0,0,0.7)'; // Add shadow for readability
-
-                            // Draw the text
-                            ctx.fillText(percentage, x, y);
-                        });
-                    });
-                    ctx.restore();
-                }
-            };
-            Chart.register(dataLabelsPlugin);
-
-            // Setup event listeners
-            setupEventListeners();
+            const csvText = await response.text();
             
-            // Initialize UI
-            initializeUI();
+            const csvData = Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true
+            });
+
+            const processedData = processTabCSV({ data: csvData.data }, filePath);
+            if (processedData.length === 0) {
+                throw new Error('No valid records found in the CSV file.');
+            }
             
-            console.log('✅ TAB Dashboard ready for production');
-        });
+            fullData = processedData;
+            
+            populateYearFilter(fullData);
+            applyFiltersAndRedraw();
+
+            updateElement('dataSourceName', filePath);
+            updateElement('lastUpdated', new Date().toLocaleString());
+            document.getElementById('exportContainer').style.display = 'block';
+            showStatusMessage(`✅ Successfully loaded ${fullData.length} records`, 'success');
+
+        } catch (error) {
+            console.error('❌ Data loading failed:', error);
+            showStatusMessage('Data loading failed: ' + error.message, 'error');
+        } finally {
+            showProcessing(false);
+        }
+    }
+
+    // Hapus bagian upload section dari UI jika ada
+    const uploadSection = document.querySelector('.upload-section');
+    if (uploadSection) {
+        uploadSection.remove();
+    }
+    
+    // Panggil fungsi-fungsi yang masih relevan
+    setupEventListeners();
+    initializeUI();
+    
+    // Langsung panggil fungsi untuk memuat data dari file CSV di server
+    loadRemoteData(csvFilePath);
+});
 
         function setupEventListeners() {
             document.getElementById('sampleDataBtn').addEventListener('click', loadSampleData)}));
