@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAB Waste Analysis Dashboard - Production v2.0</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            color: #e0e0e0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            padding: 20px 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border-bottom: 3px solid #3498db;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header h1 {
+            color: #3498db;
+            font-size: 2.2em;
+            text-align: center;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            text-align: center;
+            color: #bdc3c7;
+            margin-top: 8px;
+            font-size: 1.1em;
+        }
+
+        .data-source-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .upload-section {
+            background: linear-gradient(145deg, #2c2c3e 0%, #3d3d56 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px auto;
+            max-width: 800px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        .upload-section h3 {
+            color: #e0e0e0;
+            margin-bottom: 25px;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+
+        .upload-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .file-input-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-file {
+            background: #6c757d;
+            color: white;
+            border: 1px solid #5a6268;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-file:hover {
+            background: #5a6268;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border: 1px solid #0056b3;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .btn-primary:disabled {
+            background: #6c757d;
+            border-color: #5a6268;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+
+        .status-error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .export-container {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .processing-indicator {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 6px;
+            border: 1px solid #3498db;
+            color: #3498db;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            font-weight: 500;
+            margin: 5px;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .format-guide {
+            background: rgba(241, 196, 15, 0.1);
+            border: 1px solid #f1c40f;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #f1c40f;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+
+        .success-message {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid #27ae60;
+            color: #27ae60;
+        }
+
+        .processing-indicator {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #3498db;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .card {
+            background: linear-gradient(145deg, #2c2c3e 0%, #3d3d56 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .card h3 {
+            color: #3498db;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 20px 15px;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: #bdc3c7;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin: 15px 0;
+        }
+
+        .chart-container canvas {
+            border-radius: 10px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(45, 45, 68, 0.8);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: #ecf0f1;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 0.9em;
+        }
+
+        .data-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #e0e0e0;
+            font-size: 0.85em;
+            word-wrap: break-word;
+            max-width: 200px;
+        }
+
+        .data-table tr:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .product-cell {
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .product-item {
+            margin: 3px 0;
+            padding: 3px 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+
+        .order-number {
+            font-family: 'Courier New', monospace;
+            background: rgba(241, 196, 15, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: #f1c40f;
+        }
+
+        .highlight-positive {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .highlight-negative {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #3498db;
+            font-size: 1.2em;
+        }
+
+        .span-2 { grid-column: span 2; }
+        .span-3 { grid-column: span 3; }
+        .span-4 { grid-column: span 4; }
+
+        .top-trend-section {
+            margin: 30px auto 20px auto;
+            max-width: 1400px;
+            padding: 0 20px;
+        }
+
+        .trend-chart-container {
+            position: relative;
+            height: 400px;
+            margin: 15px 0;
+        }
+
+        .filter-container {
+            text-align: center;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-container label {
+            margin-right: 10px;
+            color: #bdc3c7;
+        }
+
+        .filter-container select, .filter-container input[type="text"] {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #3498db;
+            background-color: #2c2c3e;
+            color: #e0e0e0;
+            font-size: 1em;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-container select:focus, .filter-container input[type="text"]:focus {
+            border-color: #2980b9;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .alert-critical {
+            background: rgba(231, 76, 60, 0.1);
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        .alert-high {
+            background: rgba(230, 126, 34, 0.1);
+            border-color: #e67e22;
+            color: #e67e22;
+        }
+
+        .alert-medium {
+            background: rgba(241, 196, 15, 0.1);
+            border-color: #f1c40f;
+            color: #f1c40f;
+        }
+
+        .alert-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-close {
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 10px;
+        }
+
+        .export-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-excellent { background-color: #27ae60; }
+        .status-good { background-color: #3498db; }
+        .status-average { background-color: #f1c40f; }
+        .status-high { background-color: #e67e22; }
+        .status-critical { background-color: #e74c3c; }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .span-2, .span-3, .span-4 {
+                grid-column: span 2;
+            }
+            .filter-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .span-2, .span-3, .span-4 {
+                grid-column: span 1;
+            }
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .metric-value {
+                font-size: 1.8em;
+            }
+            .upload-section {
+                margin: 20px 10px;
+                padding: 20px;
+            }
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            .action-buttons .btn {
+                width: 100%;
+            }
+            .file-input-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 10px;
+            }
+            .card {
+                padding: 15px;
+            }
+            .metric-card {
+                padding: 15px 10px;
+            }
+            .upload-section h3 {
+                font-size: 1.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>TAB Waste Analysis Dashboard</h1>
+            <p id="dashboardSubtitle">Production Data Analytics - Real-time Insights</p>
+            <div class="data-source-info">
+                <strong>Data Source:</strong> <span id="dataSourceName">No data loaded</span> | 
+                <strong>Last Updated:</strong> <span id="lastUpdated">-</span> | 
+                <strong>Records:</strong> <span id="recordCount">0</span> |
+                <strong>Quality:</strong> <span id="dataQuality">N/A</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="upload-section">
+        <h3>Upload CSV Data File</h3>
+        
+        <div class="upload-controls">
+            <div class="file-input-container">
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                <button class="btn btn-file" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <span id="fileName" style="margin-left: 15px; color: #bdc3c7; font-style: italic;">No file chosen</span>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="loadDataBtn" disabled>Load Data</button>
+                <button class="btn btn-success" id="sampleDataBtn">Load Sample Data</button>
+            </div>
+        </div>
+        
+        <div class="processing-indicator" id="processingIndicator">
+            <div style="color: #3498db;">🔄 Processing data... Please wait</div>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <div class="export-container" id="exportContainer" style="display: none;">
+            <button class="btn btn-secondary" data-export="csv">Export CSV</button>
+            <button class="btn btn-secondary" data-export="json">Export JSON</button>
+            <button class="btn btn-secondary" id="performanceBtn">Performance Stats</button>
+        </div>
+    </div>
+
+    <div class="container top-trend-section">
+        <div class="card trend-card span-4">
+            <h3>Monthly Waste Trend Analysis (%)</h3>
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label for="yearFilter">Filter Tahun:</label>
+                    <select id="yearFilter">
+                        <option value="">All Years</option>
+                    </select>
+                </div>
+            </div>
+            <div class="trend-chart-container">
+                <canvas id="monthlyWasteTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-grid">
+            <div class="card metric-card">
+                <h3>Total Waste</h3>
+                <div class="metric-value" id="totalWaste">No Data</div>
+                <div class="metric-label">Kilogram</div>
+                <div style="font-size: 0.8em; color: #95a5a6; margin-top: 10px;">
+                    YTD: <span id="ytdWaste">-</span>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <h3>Total Material</h3>
+                <div class="metric-value" id="totalMaterialUsed">No Data</div>
+                <div class="metric-label">Kilogram</div>
+                <div style="font-size: 0.8em; color: #95a5a6; margin-top: 10px;">
+                    YTD: <span id="ytdMaterial">-</span>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <h3>Waste Bottom Line</h3>
+                <div class="metric-value" id="wasteBottomLine">No Data</div>
+                <div class="metric-label">Persentase</div>
+                <div style="font-size: 0.8em; margin-top: 10px;">
+                    <span id="efficiencyTrend">-</span>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <h3>Active Customers</h3>
+                <div class="metric-value" id="totalCustomers">No Data</div>
+                <div class="metric-label">Total Customers</div>
+                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <div style="font-size: 1.5em; font-weight: bold; color: #f39c12;" id="totalSKU">No Data</div>
+                    <div style="color: #95a5a6; font-size: 0.85em; margin-top: 3px;">Active SKU/Products</div>
+                </div>
+            </div>
+
+            <div class="card span-3">
+                <h3>Top 10 Customer - AnaliSa Waste (Kg & %)</h3>
+                <div class="chart-container" style="height: 500px;">
+                    <canvas id="top10WasteChart"></canvas>
+                </div>
+                <div style="margin-top: 15px; font-size: 0.9em; color: #bdc3c7; text-align: center;">
+                    <strong id="dynamicBottomLineWaste">No Data</strong>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Distribusi Waste Range</h3>
+                <div class="chart-container" style="height: 500px;">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card span-4">
+                <h3>Customer Performance Analytics</h3>
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label for="customerFilter">Search Customer:</label>
+                        <input type="text" id="customerFilter" placeholder="Type customer name...">
+                    </div>
+                    <div class="filter-group">
+                        <label for="statusFilter">Filter by Status:</label>
+                        <select id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="Excellent">Excellent (&lt; 5%)</option>
+                            <option value="Good">Good (5-10%)</option>
+                            <option value="Average">Average (10-20%)</option>
+                            <option value="High">High (20-30%)</option>
+                            <option value="Critical">Critical (&gt; 30%)</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="viewToggle">View:</label>
+                        <select id="viewToggle">
+                            <option value="summary">Customer Summary</option>
+                            <option value="detailed">Detailed Records</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="customerTable">
+                        <thead id="customerTableHeader">
+                            <tr>
+                                <th style="width: 20%;">Customer</th>
+                                <th style="width: 10%;">No Rek</th>
+                                <th style="width: 8%;">Records</th>
+                                <th style="width: 12%;">Waste (Kg)</th>
+                                <th style="width: 12%;">Material (Kg)</th>
+                                <th style="width: 8%;">Waste (%)</th>
+                                <th style="width: 15%;">Top Products</th>
+                                <th style="width: 15%;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerTableBody">
+                            <tr><td colspan="8" class="loading">Silakan upload file CSV dari database TAB</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card span-4" id="detailedRecordsCard" style="display: none;">
+                <h3>Detailed Records - NO.OK & NAMA BARANG</h3>
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label for="productFilter">Search Product:</label>
+                        <input type="text" id="productFilter" placeholder="Type product name...">
+                    </div>
+                    <div class="filter-group">
+                        <label for="orderFilter">Search NO.OK:</label>
+                        <input type="text" id="orderFilter" placeholder="Type order number...">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="detailedTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">Customer</th>
+                                <th style="width: 8%;">No Rek</th>
+                                <th style="width: 12%;">NO.OK</th>
+                                <th style="width: 25%;">NAMA BARANG</th>
+                                <th style="width: 10%;">Date</th>
+                                <th style="width: 10%;">Waste (Kg)</th>
+                                <th style="width: 10%;">Material (Kg)</th>
+                                <th style="width: 10%;">Waste (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailedTableBody">
+                            <tr><td colspan="8" class="loading">Switch to detailed view to see records</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let fullData = []; // Holds the complete, original dataset
+        let currentAnalysis = null; // Holds the analysis of the currently filtered data
+        let charts = new Map();
+
+        // TAB Column Mapping
+        const TAB_COLUMNS = {
+            'CUSTOMER': 'customer',
+            'Tahun': 'year',
+            'Bulan OK': 'month',
+            'NO REK': 'noRek',
+            ' NO.OK ': 'orderNumber',
+            ' NAMA BARANG ': 'sku',
+            '  PEMAKAIAN BAHAN BAKU ': 'materialUsed',
+            '  Waste_Total @Kg ': 'wasteKg',
+            ' Waste %': 'wastePercent'
+        };
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Initializing TAB Dashboard...');
+            
+            // Check required libraries
+            if (typeof Papa === 'undefined' || typeof Chart === 'undefined') {
+                showStatusMessage('Required libraries (Chart.js, PapaParse) not loaded. Please check your internet connection.', 'error');
+                return;
+            }
+
+            // FIXED: Register a custom plugin to display data labels on the doughnut chart
+            const dataLabelsPlugin = {
+                id: 'customDataLabels',
+                afterDraw: (chart) => {
+                    if (chart.config.type !== 'doughnut') return;
+                    const { ctx, data } = chart;
+                    ctx.save();
+                    data.datasets.forEach((dataset, i) => {
+                        chart.getDatasetMeta(i).data.forEach((datapoint, index) => {
+                            const { x, y } = datapoint.getCenterPoint();
+                            const value = dataset.data[index];
+                            if (value === 0) return; // Don't show label for 0 value
+
+                            const total = dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+
+                            // Style the text
+                            ctx.font = 'bold 14px Segoe UI';
+                            ctx.fillStyle = '#ffffff';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.textShadow = '1px 1px 2px rgba(0,0,0,0.7)'; // Add shadow for readability
+
+                            // Draw the text
+                            ctx.fillText(percentage, x, y);
+                        });
+                    });
+                    ctx.restore();
+                }
+            };
+            Chart.register(dataLabelsPlugin);
+
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Initialize UI
+            initializeUI();
+            
+            console.log('✅ TAB Dashboard ready for production');
+        });
+
+        function setupEventListeners() {
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+            document.getElementById('sampleDataBtn').addEventListener('click', loadSampleData);
+            document.getElementById('loadDataBtn').addEventListener('click', () => handleFileUpload({ target: document.getElementById('fileInput') }));
+
+            // --- FILTER EVENT LISTENERS ---
+            // Global filter
+            document.getElementById('yearFilter').addEventListener('change', applyFiltersAndRedraw);
+
+            // Table-specific filters
+            document.getElementById('customerFilter').addEventListener('input', handleTableAndDependentChartsFilter);
+            document.getElementById('statusFilter').addEventListener('change', handleTableAndDependentChartsFilter);
+
+            // View toggle
+            document.getElementById('viewToggle').addEventListener('change', (event) => toggleTableView(event.target.value));
+
+            // Detailed view filters
+            document.getElementById('productFilter').addEventListener('input', () => populateDetailedTable());
+            document.getElementById('orderFilter').addEventListener('input', () => populateDetailedTable());
+
+            // Export buttons
+            document.querySelector('#exportContainer').addEventListener('click', (event) => {
+                if (event.target.matches('[data-export]')) {
+                    exportData(event.target.dataset.export);
+                } else if (event.target.id === 'performanceBtn') {
+                    showPerformanceStats();
+                }
+            });
+        }
+
+        function initializeUI() {
+            updateElement('dataSourceName', 'No data loaded');
+            updateElement('lastUpdated', '-');
+            updateElement('recordCount', '0');
+            updateElement('dataQuality', 'N/A');
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showStatusMessage('Please select a CSV file.', 'error');
+                return;
+            }
+
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('loadDataBtn').disabled = false;
+
+            try {
+                showProcessing(true);
+                const startTime = Date.now();
+                
+                console.log('📁 Processing file:', file.name);
+                
+                const csvText = await readFile(file);
+                const csvData = Papa.parse(csvText, {
+                    header: true,
+                    dynamicTyping: false,
+                    skipEmptyLines: true,
+                    delimitersToGuess: [',', '\t', '|', ';']
+                });
+
+                if (csvData.errors.length > 0) {
+                    console.warn('CSV parsing warnings:', csvData.errors);
+                }
+
+                const processedData = processTabCSV(csvData, file.name);
+                
+                if (processedData.length === 0) {
+                    throw new Error('No valid records found. Please check CSV format.');
+                }
+                
+                fullData = processedData;
+                
+                // Initial population
+                populateYearFilter(fullData);
+                applyFiltersAndRedraw();
+                
+                const processingTime = Date.now() - startTime;
+                
+                updateElement('dataSourceName', file.name);
+                updateElement('lastUpdated', new Date().toLocaleString());
+                document.getElementById('exportContainer').style.display = 'block';
+                showStatusMessage(`✅ Successfully processed ${fullData.length} records in ${processingTime}ms`, 'success');
+                
+            } catch (error) {
+                console.error('❌ File processing failed:', error);
+                showStatusMessage('File processing failed: ' + error.message, 'error');
+            } finally {
+                showProcessing(false);
+            }
+        }
+        
+        // ====================================================================
+        // === 🚀 NEW: CENTRAL FILTERING AND REDRAWING LOGIC =================
+        // ====================================================================
+        function applyFiltersAndRedraw() {
+            if (!fullData || fullData.length === 0) return;
+
+            const yearFilter = document.getElementById('yearFilter').value;
+
+            // 1. Filter the entire dataset based on global filters (currently just year)
+            let filteredData = fullData;
+            if (yearFilter) {
+                filteredData = fullData.filter(row => row.year === parseInt(yearFilter));
+            }
+
+            // 2. Regenerate the analysis based on the filtered data
+            currentAnalysis = generateAnalysis(filteredData);
+            
+            // 3. Update all dashboard components with the new analysis
+            updateDashboard(currentAnalysis);
+        }
+
+        function handleTableAndDependentChartsFilter() {
+            if (!currentAnalysis) return;
+            const filteredCustomerEntries = populateCustomerTable();
+            
+            // Create a new customerAnalysis object from the filtered list of customers
+            const filteredCustomerAnalysis = Object.fromEntries(filteredCustomerEntries);
+
+            updateCustomerCharts(filteredCustomerAnalysis);
+        }
+
+        function updateDashboard(analysis) {
+            if (!analysis) return;
+
+            // Update header info, metrics, and all charts with the new data
+            updateHeaderInfo(analysis.globalStats);
+            updateMetrics(analysis);
+            updateAllCharts(analysis);
+            
+            // Populate tables based on the new analysis
+            // The table filters will be applied within these functions
+            handleTableAndDependentChartsFilter(); 
+            populateDetailedTable(); 
+        }
+
+        function updateHeaderInfo(globalStats) {
+             updateElement('recordCount', `${globalStats.totalRecords.toLocaleString()} records (${globalStats.totalOrders.toLocaleString()} orders)`);
+        }
+
+        function updateAllCharts(analysis) {
+            createMonthlyWasteTrendChart(analysis.monthlyTrends);
+            // Initially draw customer charts with all data for the current year filter
+            updateCustomerCharts(analysis.customerAnalysis);
+        }
+        
+        function updateCustomerCharts(customerAnalysisData) {
+            createTop10WasteChart(customerAnalysisData); 
+            createDistributionChart(customerAnalysisData); 
+
+            // Calculate bottom line for the currently displayed customer set
+            const totalWaste = Object.values(customerAnalysisData).reduce((sum, cust) => sum + cust.totalWasteKg, 0);
+            const totalMaterial = Object.values(customerAnalysisData).reduce((sum, cust) => sum + cust.totalBahanBaku, 0);
+            const overallBottomLine = totalMaterial > 0 ? (totalWaste / totalMaterial) * 100 : 0;
+            
+            const totalCustomerCount = Object.keys(currentAnalysis.customerAnalysis).length;
+
+            // Update the bottom line message to match the screenshot's format
+            let bottomLineMessage = `Total Bottom Line Waste: ${overallBottomLine.toFixed(2)}%`;
+            if (totalCustomerCount > 10) {
+                bottomLineMessage += ` | Others mencakup customer selain Top 10`;
+            }
+            
+            updateElement('dynamicBottomLineWaste', bottomLineMessage);
+        }
+        // ====================================================================
+        // === END: NEW FILTERING LOGIC =======================================
+        // ====================================================================
+
+
+        function processTabCSV(csvData, fileName) {
+            let validRows = 0;
+            let invalidRows = 0;
+
+            const transformedData = csvData.data.map((row, index) => {
+                try {
+                    const cleanRow = {};
+                    Object.keys(row).forEach(key => {
+                        const mappedKey = TAB_COLUMNS[key] || TAB_COLUMNS[key.trim()] || key;
+                        cleanRow[mappedKey] = row[key];
+                    });
+
+                    const year = parseInt(cleanRow.year);
+                    const month = parseInt(cleanRow.month);
+                    
+                    if (!year || !month || cleanRow.month === '(blank)') {
+                        invalidRows++;
+                        return null;
+                    }
+
+                    const date = `${year}-${String(month).padStart(2, '0')}-01`;
+                    
+                    const wastePercentStr = (cleanRow.wastePercent || '0').toString();
+                    const wastePercent = parseFloat(wastePercentStr.replace('%', '').replace(',', '.')) || 0;
+                    
+                    const materialUsed = parseFloat(cleanRow.materialUsed || 0);
+                    const wasteKg = parseFloat(cleanRow.wasteKg || 0);
+                    
+                    if (materialUsed <= 0) {
+                        invalidRows++;
+                        return null;
+                    }
+
+                    validRows++;
+                    return {
+                        date,
+                        customer: (cleanRow.customer || 'Unknown').trim(),
+                        noRek: cleanRow.noRek || 'Unknown',
+                        orderNumber: cleanRow.orderNumber || 'Unknown',
+                        sku: cleanRow.sku || 'Unknown',
+                        wasteKg: Math.abs(wasteKg),
+                        materialUsed,
+                        wastePercent: Math.abs(wastePercent),
+                        year,
+                        month
+                    };
+                } catch (error) {
+                    invalidRows++;
+                    return null;
+                }
+            }).filter(row => row !== null);
+            
+            const qualityMessage = `${validRows.toLocaleString()} valid, ${invalidRows.toLocaleString()} invalid`;
+            updateElement('dataQuality', qualityMessage);
+            console.log(`✅ Processed: ${qualityMessage}`);
+            return transformedData;
+        }
+
+        function generateAnalysis(data) {
+            const customerAnalysis = {};
+            data.forEach(row => {
+                // MODIFIED: Group by customer name only to avoid duplicates
+                const customerKey = row.customer; 
+                if (!customerAnalysis[customerKey]) {
+                    customerAnalysis[customerKey] = {
+                        customer: row.customer, 
+                        noRek: row.noRek, // Store the first noRek found
+                        totalWasteKg: 0,
+                        totalBahanBaku: 0, 
+                        totalRecords: 0, 
+                        skuCount: new Set(),
+                        orderNumbers: new Set(), 
+                        products: new Map()
+                    };
+                }
+                
+                const analysis = customerAnalysis[customerKey];
+                analysis.totalWasteKg += row.wasteKg;
+                analysis.totalBahanBaku += row.materialUsed;
+                analysis.totalRecords += 1;
+                analysis.skuCount.add(row.sku);
+                analysis.orderNumbers.add(row.orderNumber);
+                
+                if (!analysis.products.has(row.sku)) {
+                    analysis.products.set(row.sku, { name: row.sku, wasteKg: 0, materialUsed: 0 });
+                }
+                const productData = analysis.products.get(row.sku);
+                productData.wasteKg += row.wasteKg;
+                productData.materialUsed += row.materialUsed;
+            });
+
+            Object.values(customerAnalysis).forEach(data => {
+                data.avgWastePercent = data.totalBahanBaku > 0 ? (data.totalWasteKg / data.totalBahanBaku) * 100 : 0;
+                data.skuCount = data.skuCount.size;
+                data.orderCount = data.orderNumbers.size;
+                
+                data.topProducts = Array.from(data.products.values())
+                    .sort((a, b) => b.wasteKg - a.wasteKg)
+                    .slice(0, 3)
+                    .map(p => ({
+                        name: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
+                        wasteKg: p.wasteKg,
+                        wastePercent: p.materialUsed > 0 ? (p.wasteKg / p.materialUsed) * 100 : 0
+                    }));
+            });
+
+            const monthlyData = {};
+            data.forEach(row => {
+                const monthKey = `${row.year}-${String(row.month).padStart(2, '0')}`;
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = {
+                        totalWaste: 0, totalMaterialUsed: 0, year: row.year,
+                        month: new Date(row.year, row.month - 1).toLocaleString('en', { month: 'short' })
+                    };
+                }
+                monthlyData[monthKey].totalWaste += row.wasteKg;
+                monthlyData[monthKey].totalMaterialUsed += row.materialUsed;
+            });
+
+            const monthlyTrends = Object.values(monthlyData).map(d => ({
+                ...d,
+                wastePercent: d.totalMaterialUsed > 0 ? (d.totalWaste / d.totalMaterialUsed) * 100 : 0
+            })).sort((a,b) => new Date(`${a.month} 1, ${a.year}`) - new Date(`${b.month} 1, ${b.year}`));
+
+            const totalWaste = data.reduce((sum, row) => sum + row.wasteKg, 0);
+            const totalMaterialUsed = data.reduce((sum, row) => sum + row.materialUsed, 0);
+            
+            return {
+                customerAnalysis, monthlyTrends, rawData: data,
+                globalStats: {
+                    totalWaste, totalMaterialUsed,
+                    wasteTotalBottomLine: totalMaterialUsed > 0 ? (totalWaste / totalMaterialUsed) * 100 : 0,
+                    totalCustomers: Object.keys(customerAnalysis).length,
+                    totalSKU: new Set(data.map(row => row.sku)).size,
+                    totalOrders: new Set(data.map(row => row.orderNumber)).size,
+                    totalRecords: data.length
+                }
+            };
+        }
+
+        function updateMetrics(analysis) {
+            const { globalStats, monthlyTrends } = analysis;
+            
+            updateElement('totalWaste', formatNumber(globalStats.totalWaste));
+            updateElement('totalMaterialUsed', formatNumber(globalStats.totalMaterialUsed));
+            updateElement('wasteBottomLine', globalStats.wasteTotalBottomLine.toFixed(2) + '%');
+            updateElement('totalCustomers', globalStats.totalCustomers);
+            updateElement('totalSKU', globalStats.totalSKU);
+            
+            const currentYear = new Date().getFullYear();
+            const ytdData = fullData.filter(d => d.year === currentYear);
+            const ytdWaste = ytdData.reduce((sum, d) => sum + d.wasteKg, 0);
+            const ytdMaterial = ytdData.reduce((sum, d) => sum + d.materialUsed, 0);
+            
+            updateElement('ytdWaste', formatNumberWithSuffix(ytdWaste) + ' kg');
+            updateElement('ytdMaterial', formatNumberWithSuffix(ytdMaterial) + ' kg');
+            updateElement('efficiencyTrend', calculateTrend(monthlyTrends));
+        }
+
+        function createMonthlyWasteTrendChart(monthlyTrendsData) {
+            const ctx = document.getElementById('monthlyWasteTrendChart');
+            if (!ctx) return;
+
+            destroyChart('monthlyWasteTrendChart');
+
+            if (!monthlyTrendsData || monthlyTrendsData.length === 0) {
+                createNoDataChart(ctx, 'No data for selected year');
+                return;
+            }
+
+            const labels = monthlyTrendsData.map(d => `${d.month} ${d.year}`);
+            const data = monthlyTrendsData.map(d => d.wastePercent);
+
+            charts.set('monthlyWasteTrendChart', new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Waste Percentage (%)', data: data,
+                        borderColor: 'rgba(75, 192, 192, 1)', backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 3, tension: 0.4, pointRadius: 6,
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)', pointBorderColor: '#fff',
+                        pointBorderWidth: 2, fill: true
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `Waste: ${c.parsed.y.toFixed(2)}%` } } },
+                    scales: {
+                        y: { beginAtZero: false, title: { display: true, text: 'Waste Percentage (%)', color: '#e0e0e0' }, ticks: { callback: (v) => v.toFixed(1) + '%', color: '#bdc3c7' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        x: { title: { display: true, text: 'Period', color: '#e0e0e0' }, ticks: { maxRotation: 45, color: '#bdc3c7' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+                    }
+                }
+            }));
+        }
+
+        function createTop10WasteChart(customerAnalysisData) {
+            const ctx = document.getElementById('top10WasteChart');
+            if (!ctx) return;
+            destroyChart('top10WasteChart');
+
+            // Sort by Bahan Baku (Material Used) to match screenshot
+            const sortedCustomers = Object.values(customerAnalysisData).sort((a, b) => b.totalBahanBaku - a.totalBahanBaku);
+
+            const top10Customers = sortedCustomers.slice(0, 10);
+            const otherCustomers = sortedCustomers.slice(10);
+            
+            let chartData = [...top10Customers];
+
+            // Aggregate remaining customers into an "Others" category
+            if (otherCustomers.length > 0) {
+                const othersData = otherCustomers.reduce((acc, customer) => {
+                    acc.totalWasteKg += customer.totalWasteKg;
+                    acc.totalBahanBaku += customer.totalBahanBaku;
+                    return acc;
+                }, {
+                    customer: 'Others',
+                    totalWasteKg: 0,
+                    totalBahanBaku: 0,
+                    noRek: '-'
+                });
+
+                othersData.avgWastePercent = othersData.totalBahanBaku > 0 ? (othersData.totalWasteKg / othersData.totalBahanBaku) * 100 : 0;
+                chartData.push(othersData);
+            }
+
+            if (chartData.length === 0) {
+                createNoDataChart(ctx, 'No customers match filters');
+                return;
+            }
+            
+            const labels = chartData.map(d => d.customer.length > 25 ? d.customer.substring(0, 25) + '...' : d.customer);
+            
+            const maxWastePercent = Math.max(...chartData.map(d => d.avgWastePercent));
+            const percentageScale = Math.ceil(maxWastePercent / 5) * 5 || 5;
+            
+            charts.set('top10WasteChart', new Chart(ctx, {
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            type: 'bar',
+                            label: 'Total Bahan Baku (Kg)', 
+                            data: chartData.map(d => d.totalBahanBaku), 
+                            backgroundColor: 'rgba(52, 152, 219, 0.8)', 
+                            borderColor: 'rgba(52, 152, 219, 1)', 
+                            borderWidth: 1,
+                            yAxisID: 'y',
+                            xAxisID: 'x',
+                            order: 2
+                        },
+                        { 
+                            type: 'bar',
+                            label: 'Total Waste (Kg)', 
+                            data: chartData.map(d => d.totalWasteKg), 
+                            backgroundColor: 'rgba(231, 76, 60, 0.8)', 
+                            borderColor: 'rgba(231, 76, 60, 1)', 
+                            borderWidth: 1,
+                            yAxisID: 'y',
+                            xAxisID: 'x',
+                            order: 2
+                        },
+                        {
+                            type: 'scatter',
+                            label: 'Waste Percentage (%)',
+                            data: chartData.map((d, index) => ({
+                                x: d.avgWastePercent, 
+                                y: index
+                            })),
+                            backgroundColor: 'rgba(241, 196, 15, 1)',
+                            borderColor: 'rgba(0, 0, 0, 0.8)', 
+                            borderWidth: 1.5,
+                            radius: 6,
+                            hoverRadius: 8,
+                            yAxisID: 'y',
+                            xAxisID: 'x2', // Assign to the top axis
+                            order: 1,
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: { 
+                        legend: { 
+                            position: 'top', 
+                            labels: { 
+                                color: '#e0e0e0',
+                                usePointStyle: true
+                            }
+                        }, 
+                        tooltip: { 
+                            callbacks: { 
+                                label: function(context) {
+                                    if (context.dataset.type === 'scatter') {
+                                        return `${context.dataset.label}: ${context.parsed.x.toFixed(2)}%`;
+                                    }
+                                    if (context.datasetIndex === 0) { // Bahan Baku
+                                        return `${context.dataset.label}: ${formatNumberWithSuffix(context.parsed.x)} kg`;
+                                    }
+                                    if (context.datasetIndex === 1) { // Waste
+                                        return `${context.dataset.label}: ${formatNumberWithSuffix(context.parsed.x)} kg`;
+                                    }
+                                    return '';
+                                },
+                                title: function(context) {
+                                     const customer = chartData[context[0].dataIndex];
+                                     if(customer.customer === 'Others') return 'Others';
+                                     return `${customer.customer}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            stacked: false,
+                            beginAtZero: true,
+                            position: 'bottom',
+                            title: { display: true, text: 'Material Usage (Kg)', color: '#e0e0e0' }, 
+                            ticks: { callback: (v) => formatNumberWithSuffix(v), color: '#bdc3c7' }, 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x2: { 
+                            position: 'top',
+                            beginAtZero: true,
+                            max: percentageScale,
+                            title: { display: true, text: 'Waste Percentage (%)', color: '#f1c40f' },
+                            ticks: { stepSize: 5, callback: (v) => v.toFixed(0) + '%', color: '#f1c40f'},
+                            grid: { drawOnChartArea: false }
+                        },
+                        y: { 
+                            stacked: false, 
+                            ticks: { color: '#e0e0e0' }, 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            }));
+        }
+
+        function createDistributionChart(customerAnalysisData) {
+            const ctx = document.getElementById('distributionChart');
+            if (!ctx) return;
+            destroyChart('distributionChart');
+
+            const categories = { 'Excellent': 0, 'Good': 0, 'Average': 0, 'High': 0, 'Critical': 0 };
+            
+            Object.values(customerAnalysisData).forEach(customer => {
+                categories[getPerformanceStatus(customer.avgWastePercent)]++;
+            });
+            
+            const labels = [
+                'Excellent (< 5%)', 'Good (5-10%)', 'Average (10-20%)',
+                'High (20-30%)', 'Critical (> 30%)'
+            ];
+            const data = Object.values(categories);
+            const total = data.reduce((a, b) => a + b, 0);
+
+            charts.set('distributionChart', new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: ['#27ae60', '#3498db', '#f1c40f', '#e67e22', '#e74c3c'],
+                        borderColor: '#2d2d44',
+                        borderWidth: 3, 
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '60%',
+                    plugins: {
+                        // Custom plugin (registered globally) will handle data labels
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#e0e0e0',
+                                usePointStyle: true,
+                                boxWidth: 10,
+                                padding: 25
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (c) => {
+                                    const percentage = total > 0 ? ((c.parsed / total) * 100).toFixed(1) : 0;
+                                    return `${c.label}: ${c.raw} customers (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }));
+        }
+
+        function populateCustomerTable() {
+            const tbody = document.getElementById('customerTableBody');
+            if (!currentAnalysis) {
+                tbody.innerHTML = `<tr><td colspan="8" class="loading">Please upload a TAB database CSV file.</td></tr>`;
+                return [];
+            }
+            
+            const filterText = document.getElementById('customerFilter').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            let customersToDisplay = Object.entries(currentAnalysis.customerAnalysis);
+
+            if (filterText) {
+                customersToDisplay = customersToDisplay.filter(([, data]) => 
+                    data.customer.toLowerCase().includes(filterText) || data.noRek.toLowerCase().includes(filterText)
+                );
+            }
+            if (statusFilter) {
+                customersToDisplay = customersToDisplay.filter(([, data]) => getPerformanceStatus(data.avgWastePercent) === statusFilter);
+            }
+
+            customersToDisplay.sort(([,a], [,b]) => b.totalBahanBaku - a.totalBahanBaku);
+
+            if (customersToDisplay.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="loading">No data matches the current filters.</td></tr>`;
+            } else {
+                 tbody.innerHTML = customersToDisplay.map(([, data]) => {
+                    const status = getPerformanceStatus(data.avgWastePercent);
+                    const statusClass = getStatusClass(status);
+                    
+                    const topProductsDisplay = data.topProducts.length > 0 ? 
+                        data.topProducts.map(p => 
+                            `<div class="product-item">
+                                <strong>${p.name}</strong><br>
+                                <span style="color: #e74c3c;">${formatNumber(p.wasteKg)} kg (${p.wastePercent.toFixed(1)}%)</span>
+                            </div>`
+                        ).join('') : '<span style="color: #95a5a6;">No products</span>';
+
+                    return `
+                        <tr>
+                            <td style="font-weight: 600;">${data.customer}</td>
+                            <td style="text-align: center; color: #3498db;">${data.noRek}</td>
+                            <td style="text-align: center;">${formatNumber(data.totalRecords)}</td>
+                            <td style="text-align: right; color: #e74c3c;">${formatNumber(data.totalWasteKg)}</td>
+                            <td style="text-align: right; color: #3498db;">${formatNumber(data.totalBahanBaku)}</td>
+                            <td style="text-align: center;">${data.avgWastePercent.toFixed(2)}%</td>
+                            <td class="product-cell">${topProductsDisplay}
+                                <div style="margin-top: 5px; font-size: 0.8em; color: #95a5a6;">
+                                    SKUs: ${data.skuCount} | Orders: ${data.orderCount}
+                                </div>
+                            </td>
+                            <td class="${statusClass}" style="text-align: center; font-weight: 600;">${status}</td>
+                        </tr>`;
+                }).join('');
+            }
+            
+            // Return the filtered list for dependent chart updates
+            return customersToDisplay;
+        }
+
+        function toggleTableView(viewType) {
+            const customerCard = document.querySelector('#customerTable').closest('.card');
+            const detailedCard = document.getElementById('detailedRecordsCard');
+            
+            if (viewType === 'detailed') {
+                customerCard.style.display = 'none';
+                detailedCard.style.display = 'block';
+                populateDetailedTable();
+            } else {
+                customerCard.style.display = 'block';
+                detailedCard.style.display = 'none';
+            }
+        }
+
+        function populateDetailedTable() {
+            const tbody = document.getElementById('detailedTableBody');
+            if (!currentAnalysis || !currentAnalysis.rawData) {
+                tbody.innerHTML = `<tr><td colspan="8" class="loading">No detailed data available.</td></tr>`;
+                return;
+            }
+
+            const productFilter = document.getElementById('productFilter').value.toLowerCase();
+            const orderFilter = document.getElementById('orderFilter').value.toLowerCase();
+            
+            let dataToDisplay = currentAnalysis.rawData;
+
+            if (productFilter) {
+                dataToDisplay = dataToDisplay.filter(row => row.sku.toLowerCase().includes(productFilter));
+            }
+            if (orderFilter) {
+                dataToDisplay = dataToDisplay.filter(row => row.orderNumber.toLowerCase().includes(orderFilter));
+            }
+
+            dataToDisplay = dataToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 500);
+
+            if (dataToDisplay.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="loading">No records match the filters.</td></tr>`;
+            } else {
+                tbody.innerHTML = dataToDisplay.map(row => {
+                    const wastePercent = row.materialUsed > 0 ? (row.wasteKg / row.materialUsed) * 100 : 0;
+                    const statusClass = wastePercent > 20 ? 'highlight-negative' : wastePercent < 5 ? 'highlight-positive' : '';
+                    
+                    return `
+                        <tr>
+                            <td style="font-weight: 600;">${row.customer}</td>
+                            <td style="text-align: center; color: #3498db;">${row.noRek}</td>
+                            <td><span class="order-number">${row.orderNumber}</span></td>
+                            <td title="${row.sku}">${row.sku.length > 40 ? row.sku.substring(0, 40) + '...' : row.sku}</td>
+                            <td style="text-align: center;">${formatDate(row.date)}</td>
+                            <td style="text-align: right; color: #e74c3c; font-weight: 600;">${formatNumber(row.wasteKg)}</td>
+                            <td style="text-align: right; color: #3498db;">${formatNumber(row.materialUsed)}</td>
+                            <td class="${statusClass}" style="text-align: center; font-weight: 600;">${wastePercent.toFixed(2)}%</td>
+                        </tr>`;
+                }).join('');
+            }
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { year: '2-digit', month: 'short', day: 'numeric' });
+        }
+
+        function populateYearFilter(data) {
+            const yearFilter = document.getElementById('yearFilter');
+            yearFilter.innerHTML = '<option value="">All Years</option>';
+            
+            if (data && data.length > 0) {
+                const years = [...new Set(data.map(d => d.year))].sort((a, b) => b - a);
+                years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    yearFilter.appendChild(option);
+                });
+            }
+        }
+        
+        function loadSampleData() {
+            console.log('📊 Loading demo data...');
+            showProcessing(true);
+            
+            fullData = [
+                {date: '2024-01-01', customer: 'PT SOFTEX INDONESIA', noRek: 'STX001', orderNumber: 'OK/TAB/24/I/00051', sku: 'PEMBALUT LAURIER RELAX NIGHT 28CM ISI 8', wasteKg: 850, materialUsed: 18500, wastePercent: 4.59, year: 2024, month: 1},
+                {date: '2024-01-01', customer: 'PT KAO INDONESIA', noRek: 'KAO002', orderNumber: 'OK/TAB/24/I/00052', sku: 'ATTACK EASY LIQUID DETERGENT 900ML', wasteKg: 420, materialUsed: 12800, wastePercent: 3.28, year: 2024, month: 1},
+                {date: '2024-02-01', customer: 'PT PURA BARUTAMA', noRek: 'PUR003', orderNumber: 'OK/TAB/24/II/00087', sku: 'BSJ FOIL PAPER/GOLD 6.5 U 60 GSM X 990 MM', wasteKg: 3200, materialUsed: 160000, wastePercent: 2.0, year: 2024, month: 2},
+                {date: '2024-02-01', customer: 'PT SAYAP MAS UTAMA', noRek: 'SMS004', orderNumber: 'OK/TAB/24/II/00088', sku: 'WINGS SOAP PACK ECONOMY SIZE 900GR', wasteKg: 680, materialUsed: 34000, wastePercent: 2.0, year: 2024, month: 2},
+                {date: '2024-03-01', customer: 'PT MAYORA INDAH TBK', noRek: 'MYR005', orderNumber: 'OK/TAB/24/III/00134', sku: 'KOPIKO CANDY WRAPPER FOIL PREMIUM', wasteKg: 2100, materialUsed: 21000, wastePercent: 10.0, year: 2024, month: 3},
+                {date: '2024-03-01', customer: 'PT SOFTEX INDONESIA', noRek: 'STX001', orderNumber: 'OK/TAB/24/III/00135', sku: 'LAURIER SUPER SLIMGUARD DAY 23CM ISI 16', wasteKg: 650, materialUsed: 15000, wastePercent: 4.33, year: 2024, month: 3},
+                {date: '2024-04-01', customer: 'PT KAO INDONESIA', noRek: 'KAO002', orderNumber: 'OK/TAB/24/IV/00167', sku: 'BIORE FACIAL FOAM BRIGHTENING 100ML', wasteKg: 320, materialUsed: 11200, wastePercent: 2.86, year: 2024, month: 4},
+                {date: '2024-04-01', customer: 'PT PURA BARUTAMA', noRek: 'PUR006', orderNumber: 'OK/TAB/24/IV/00168', sku: 'CETAKAN FOIL PAPER/MIXED COLORS (SNP) 60 GSM', wasteKg: 4500, materialUsed: 18000, wastePercent: 25.0, year: 2024, month: 4},
+                {date: '2025-01-01', customer: 'PT SOFTEX INDONESIA', noRek: 'STX006', orderNumber: 'OK/TAB/25/I/00012', sku: 'LAURIER NIGHT SECURITY SUPER WING 35CM', wasteKg: 950, materialUsed: 20000, wastePercent: 4.75, year: 2025, month: 1},
+                {date: '2025-01-01', customer: 'PT NOJORONO TOBACCO INTERNATIONAL', noRek: 'NTI007', orderNumber: 'OK/TAB/25/I/00013', sku: 'ROKOK PACKAGING PREMIUM FOIL WRAPPER', wasteKg: 5200, materialUsed: 22000, wastePercent: 23.64, year: 2025, month: 1}
+            ];
+
+            populateYearFilter(fullData);
+            applyFiltersAndRedraw();
+            
+            updateElement('dataSourceName', 'TAB_Demo_Data.csv');
+            updateElement('lastUpdated', new Date().toLocaleString());
+            updateElement('dataQuality', '100% valid');
+            document.getElementById('exportContainer').style.display = 'block';
+            showStatusMessage('✓ Sample data loaded', 'success');
+            showProcessing(false);
+        }
+
+        function checkAndDisplayAlerts(analysis) {
+            const alerts = [];
+            if (analysis.globalStats.wasteTotalBottomLine > 35) alerts.push({ severity: 'critical', message: `Critical overall waste rate: ${analysis.globalStats.wasteTotalBottomLine.toFixed(2)}%` });
+            else if (analysis.globalStats.wasteTotalBottomLine > 25) alerts.push({ severity: 'high', message: `High overall waste rate: ${analysis.globalStats.wasteTotalBottomLine.toFixed(2)}%` });
+            
+            Object.values(analysis.customerAnalysis).forEach(customer => {
+                if (customer.avgWastePercent > 35) alerts.push({ severity: 'critical', message: `${customer.customer} has critical waste rate: ${customer.avgWastePercent.toFixed(2)}%` });
+            });
+            alerts.forEach(showNotification);
+        }
+
+        function showNotification(alert) {
+            const container = document.getElementById('alertContainer') || createAlertContainer();
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${alert.severity}`;
+            notification.innerHTML = `<div class="alert-content"><strong>${alert.severity.toUpperCase()}:</strong> ${alert.message}<button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button></div>`;
+            container.appendChild(notification);
+            setTimeout(() => notification.remove(), 7000);
+        }
+
+        function createAlertContainer() {
+            const container = document.createElement('div');
+            container.id = 'alertContainer';
+            container.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 400px;`;
+            document.body.appendChild(container);
+            return container;
+        }
+
+        function exportData(format) {
+            if (!currentAnalysis) {
+                showStatusMessage('No data available for export', 'error');
+                return;
+            }
+            try {
+                if (format === 'csv') {
+                    const headers = ['Customer', 'No Rek', 'Total Records', 'Total Waste (Kg)', 'Total Material (Kg)', 'Avg Waste (%)', 'SKU Count'];
+                    const rows = Object.values(currentAnalysis.customerAnalysis).map(c => [ c.customer, c.noRek, c.totalRecords, c.totalWasteKg.toFixed(2), c.totalBahanBaku.toFixed(2), c.avgWastePercent.toFixed(2), c.skuCount ]);
+                    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+                    downloadFile(csvContent, 'tab_waste_analysis.csv', 'text/csv');
+                } else if (format === 'json') {
+                    const jsonContent = JSON.stringify({ ...currentAnalysis, exportedAt: new Date().toISOString() }, null, 2);
+                    downloadFile(jsonContent, 'tab_waste_analysis.json', 'application/json');
+                }
+            } catch (error) {
+                showStatusMessage('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        function showPerformanceStats() {
+            const stats = {
+                recordCount: fullData.length,
+                customerCount: currentAnalysis ? currentAnalysis.globalStats.totalCustomers : 0,
+                memoryUsage: performance.memory ? (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2) + ' MB' : 'N/A',
+                chartsActive: charts.size
+            };
+            alert(`Performance Stats:\nRecords: ${stats.recordCount.toLocaleString()}\nCustomers: ${stats.customerCount}\nMemory Usage: ${stats.memoryUsage}\nActive Charts: ${stats.chartsActive}`);
+        }
+
+        // Utility functions
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+        function updateElement(id, value) { document.getElementById(id).textContent = value; }
+        function formatNumber(num) { return new Intl.NumberFormat('id-ID').format(Math.round(num)); }
+        function formatNumberWithSuffix(num) {
+            if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(0) + 'K';
+            return Math.round(num).toString();
+        }
+        function getPerformanceStatus(wastePercent) {
+            if (wastePercent < 5) return 'Excellent'; if (wastePercent < 10) return 'Good';
+            if (wastePercent < 20) return 'Average'; if (wastePercent < 30) return 'High';
+            return 'Critical';
+        }
+        function getStatusClass(status) {
+            const map = { 'Excellent': 'highlight-positive', 'Good': 'highlight-positive', 'High': 'highlight-negative', 'Critical': 'highlight-negative' };
+            return map[status] || '';
+        }
+        function calculateTrend(monthlyTrends) {
+            if (monthlyTrends.length < 2) return 'No trend data';
+            const recent = monthlyTrends.slice(-2);
+            const change = recent[1].wastePercent - recent[0].wastePercent;
+            if (change < -0.5) return '↗️ Improving'; if (change > 0.5) return '↘️ Declining';
+            return '➡️ Stable';
+        }
+        function showProcessing(show) { document.getElementById('processingIndicator').style.display = show ? 'block' : 'none'; }
+        function showStatusMessage(message, type) {
+            const el = document.getElementById('statusMessage');
+            el.textContent = message;
+            el.className = `status-message status-${type}`;
+            el.style.display = 'block';
+        }
+        function destroyChart(chartId) {
+            if (charts.has(chartId)) { charts.get(chartId).destroy(); charts.delete(chartId); }
+        }
+        function createNoDataChart(ctx, message) {
+            charts.set(ctx.id, new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: [message], datasets: [{ data: [1], backgroundColor: ['rgba(128, 128, 128, 0.3)'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+            }));
+        }
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+    </script>
+</body>
+</html>
