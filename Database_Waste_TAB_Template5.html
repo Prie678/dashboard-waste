@@ -556,37 +556,6 @@
         </div>
     </div>
 
-    <div class="upload-section">
-        <h3>Upload CSV Data File</h3>
-        
-        <div class="upload-controls">
-            <div class="file-input-container">
-                <input type="file" id="fileInput" accept=".csv" style="display: none;">
-                <button class="btn btn-file" onclick="document.getElementById('fileInput').click()">
-                    Choose File
-                </button>
-                <span id="fileName" style="margin-left: 15px; color: #bdc3c7; font-style: italic;">No file chosen</span>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn btn-primary" id="loadDataBtn" disabled>Load Data</button>
-                <button class="btn btn-success" id="sampleDataBtn">Load Sample Data</button>
-            </div>
-        </div>
-        
-        <div class="processing-indicator" id="processingIndicator">
-            <div style="color: #3498db;">🔄 Processing data... Please wait</div>
-        </div>
-        
-        <div id="statusMessage" class="status-message"></div>
-        
-        <div class="export-container" id="exportContainer" style="display: none;">
-            <button class="btn btn-secondary" data-export="csv">Export CSV</button>
-            <button class="btn btn-secondary" data-export="json">Export JSON</button>
-            <button class="btn btn-secondary" id="performanceBtn">Performance Stats</button>
-        </div>
-    </div>
-
     <div class="container top-trend-section">
         <div class="card trend-card span-4">
             <h3>Monthly Waste Trend Analysis (%)</h3>
@@ -813,9 +782,7 @@
         });
 
         function setupEventListeners() {
-            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-            document.getElementById('sampleDataBtn').addEventListener('click', loadSampleData);
-            document.getElementById('loadDataBtn').addEventListener('click', () => handleFileUpload({ target: document.getElementById('fileInput') }));
+            document.getElementById('sampleDataBtn').addEventListener('click', loadSampleData)}));
 
             // --- FILTER EVENT LISTENERS ---
             // Global filter
@@ -849,63 +816,7 @@
             updateElement('dataQuality', 'N/A');
         }
 
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!file.name.toLowerCase().endsWith('.csv')) {
-                showStatusMessage('Please select a CSV file.', 'error');
-                return;
-            }
-
-            document.getElementById('fileName').textContent = file.name;
-            document.getElementById('loadDataBtn').disabled = false;
-
-            try {
-                showProcessing(true);
-                const startTime = Date.now();
-                
-                console.log('📁 Processing file:', file.name);
-                
-                const csvText = await readFile(file);
-                const csvData = Papa.parse(csvText, {
-                    header: true,
-                    dynamicTyping: false,
-                    skipEmptyLines: true,
-                    delimitersToGuess: [',', '\t', '|', ';']
-                });
-
-                if (csvData.errors.length > 0) {
-                    console.warn('CSV parsing warnings:', csvData.errors);
-                }
-
-                const processedData = processTabCSV(csvData, file.name);
-                
-                if (processedData.length === 0) {
-                    throw new Error('No valid records found. Please check CSV format.');
-                }
-                
-                fullData = processedData;
-                
-                // Initial population
-                populateYearFilter(fullData);
-                applyFiltersAndRedraw();
-                
-                const processingTime = Date.now() - startTime;
-                
-                updateElement('dataSourceName', file.name);
-                updateElement('lastUpdated', new Date().toLocaleString());
-                document.getElementById('exportContainer').style.display = 'block';
-                showStatusMessage(`✅ Successfully processed ${fullData.length} records in ${processingTime}ms`, 'success');
-                
-            } catch (error) {
-                console.error('❌ File processing failed:', error);
-                showStatusMessage('File processing failed: ' + error.message, 'error');
-            } finally {
-                showProcessing(false);
-            }
-        }
-        
+               
         // ====================================================================
         // === 🚀 NEW: CENTRAL FILTERING AND REDRAWING LOGIC =================
         // ====================================================================
